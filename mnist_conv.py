@@ -52,20 +52,47 @@ class MnistDataset(nn.Module):
         return self.classifier(out)
 
 
-numEpoch = 10
+def getDefaultDevice():
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    else:
+        return torch.device("cpu")
+
+
+device = getDefaultDevice()
+print("device=", device)
+
+def toDevice(data, device):
+    if isinstance(data, list):
+        return [toDevice(d, device) for d in data]
+    else:
+        return data.to(device)
+
+class DeviceDataLoader:
+    def __init__(self, device, dataLoader):
+        self.device = device
+        self.dataLoader = dataLoader
+
+    def __len__(self):
+        return len(self.dataLoader)
+
+    def __iter__(self):
+        for d in self.dataLoader:
+            yield toDevice(d, self.device)
+
+
+train_dl = DeviceDataLoader(device, train_dl)
+test_dl = DeviceDataLoader(device, test_dl)
+
+numEpoch = 20
 model = MnistDataset()
+model.to(device)
 
 if loadSaveFile:
     model.load_state_dict(torch.load(saveFile))
 
 optimizer = torch.optim.SGD(model.parameters(), lr=10e-4)
 scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, 10e-2, epochs=numEpoch, steps_per_epoch=len(train_dl))
-
-
-
-def calculateAccuracy(yPredicted, y):
-    _, yMax = torch.max(yPredicted, dim=1)
-    return torch.tensor(torch.sum(yMax == y).item() / len(y))
 
 
 for epoch in range(numEpoch):
@@ -89,14 +116,13 @@ for epoch in range(numEpoch):
     for x, y in test_dl:
         yPredicted = model(x)
         loss = cross_entropy(yPredicted, y).detach()
-        accuracy = calculateAccuracy(yPredicted, y)
         losses.append(loss)
 
         total += y.size(0)
         _, yMax = torch.max(yPredicted, dim=1)
         correct += (yMax == y).sum().item()
     avgLoss = torch.stack(losses).mean()
-    avgAccuracy = correct / total * 100
-    print("loss=", avgLoss, "acc=", avgAccuracy,"%")
+    accuracy = correct / total * 100
+    print("loss=", avgLoss, "acc=", accuracy,"%")
 
 torch.save(model.state_dict(), saveFile)
