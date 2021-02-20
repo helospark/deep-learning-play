@@ -9,7 +9,7 @@ Reaches about 0.0086% error rate (99.9916% accuracy) using deep convolutional ne
 
 # MNIST GAN
 
-Files [mnist_gan.py](mnist_conv.py) or [mnist_gan.ipynb](mnist_gan.ipynb)
+Files [mnist_gan.py](mnist_gan.py) or [mnist_gan.ipynb](mnist_gan.ipynb)
 
 Generates MNIST dataset using General Adversarial Network (GAN)
 
